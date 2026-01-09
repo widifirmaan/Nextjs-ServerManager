@@ -1,8 +1,16 @@
-# Server Manager
+# Tunneled Server Manager
 
 A modern, responsive, and secure web-based server management dashboard built with Next.js. Monitor system resources, manage Docker containers, control Cloudflare Tunnels, and access a web-based terminal—all from a single, beautiful interface.
 
 ![Dashboard Overview](screenshots/dashboard.png)
+
+## 🚀 Why Use This?
+
+**The Perfect Solution for Home Labs & ISP-NAT Environments.**
+
+Accessing your home server remotely can be a pain, especially if your ISP doesn't provide a Static IP or puts you behind CG-NAT. This project solves that problem eleganty.
+
+By leveraging **Cloudflare Tunnels**, this dashboard allows you to securely access your server's SSH terminal, Docker containers, and system stats from anywhere in the world—**without port forwarding, without exposing your public IP, and without needing a static IP address.**
 
 ## Features
 
@@ -16,6 +24,16 @@ A modern, responsive, and secure web-based server management dashboard built wit
     *   HttpOnly cookies for session management.
     *   DevTools blocking (client-side) to deter casual inspection.
     *   Execution of arbitrary commands is protected behind authentication.
+
+## 🔮 Upcoming Features (Roadmap)
+
+We are constantly expanding! Stay tuned for these powerful additions:
+
+*   **Node Manager:** Easy management of Node.js versions and processes.
+*   **Server Package Manager:** GUI for `apt` / `yum` to install and update system packages.
+*   **PHP Manager:** Switch PHP versions and manage extensions effortlessly.
+*   **Database Manager:** Integrated GUI for managing MySQL/PostgreSQL databases.
+*   **File Manager:** Browse and edit server files directly from the browser.
 
 ## Screenshots
 
