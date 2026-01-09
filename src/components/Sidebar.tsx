@@ -1,15 +1,25 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { Terminal, Server, Globe, Activity, Menu, X } from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation';
+import { Terminal, Server, Globe, Activity, Menu, X, LogOut } from 'lucide-react';
 import clsx from 'clsx';
 import { motion } from 'framer-motion';
 import { useState, useEffect } from 'react';
 
 export default function Sidebar() {
     const pathname = usePathname();
+    const router = useRouter();
     const [isMobileOpen, setIsMobileOpen] = useState(false);
+
+    const handleLogout = async () => {
+        try {
+            await fetch('/api/auth/logout', { method: 'POST' });
+            router.push('/login');
+        } catch (error) {
+            console.error('Logout failed', error);
+        }
+    };
 
     // Close sidebar when navigating
     useEffect(() => {
@@ -103,9 +113,18 @@ export default function Sidebar() {
                             </Link>
                         );
                     })}
+
+                    <button
+                        onClick={handleLogout}
+                        className="nav-item w-full hover:text-error transition-colors mt-2"
+                        style={{ marginTop: 'auto' }}
+                    >
+                        <LogOut size={20} />
+                        <span>Logout</span>
+                    </button>
                 </nav>
 
-                <div className="mt-auto p-4 glass-panel text-xs text-muted flex items-center justify-between">
+                <div className="mt-4 p-4 glass-panel text-xs text-muted flex items-center justify-between">
                     <span>Server Status</span>
                     <span className="badge badge-success">ONLINE</span>
                 </div>
