@@ -3,6 +3,8 @@ import { Inter, Fira_Code } from "next/font/google";
 import "./globals.css";
 import Sidebar from "@/components/Sidebar";
 
+import DevToolsBlocker from "@/components/DevToolsBlocker";
+
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const firaCode = Fira_Code({ subsets: ["latin"], variable: "--font-mono" });
 
@@ -19,6 +21,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.variable} ${firaCode.variable}`}>
+        <DevToolsBlocker />
         <div className="layout">
           <Sidebar />
           <main className="content">
