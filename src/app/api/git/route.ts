@@ -35,10 +35,23 @@ export async function GET() {
 
                 // Get basic info in parallel
                 try {
-                    const [status, remotes] = await Promise.all([
+
+                    // Check for Docker files
+                    const dockerComposeYml = path.join(fullPath, 'docker-compose.yml');
+                    const dockerComposeYaml = path.join(fullPath, 'docker-compose.yaml');
+                    const dockerfile = path.join(fullPath, 'Dockerfile');
+
+                    const [status, remotes, hasComposeYml, hasComposeYaml, hasDockerfile] = await Promise.all([
                         git.status(),
-                        git.getRemotes(true)
+                        git.getRemotes(true),
+                        fs.access(dockerComposeYml).then(() => true).catch(() => false),
+                        fs.access(dockerComposeYaml).then(() => true).catch(() => false),
+                        fs.access(dockerfile).then(() => true).catch(() => false)
                     ]);
+
+                    let dockerType = null;
+                    if (hasComposeYml || hasComposeYaml) dockerType = 'compose';
+                    else if (hasDockerfile) dockerType = 'file';
 
                     const lastCommit = await git.log({ maxCount: 1 }).catch(() => null);
 
@@ -51,6 +64,7 @@ export async function GET() {
                         behind: status.behind,
                         filesChanged: status.files.length,
                         files: status.files, // List of dirty files
+                        dockerType, // compose | file | null
                         remote: remotes[0]?.refs?.fetch || '',
                         lastCommit: lastCommit?.latest ? {
                             message: lastCommit.latest.message,

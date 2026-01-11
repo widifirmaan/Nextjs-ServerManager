@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { GitBranch, GitCommit, Download, RefreshCw, AlertTriangle, Loader2, GitPullRequest, Clock, Plus, X } from 'lucide-react';
+import { GitBranch, GitCommit, Download, RefreshCw, AlertTriangle, Loader2, GitPullRequest, Clock, Plus, X, Box } from 'lucide-react';
 import clsx from 'clsx';
 // import { toast } from 'sonner';
 
@@ -14,6 +14,7 @@ interface GitProject {
     behind: number;
     filesChanged: number;
     files: { path: string, index: string, working_dir: string }[];
+    dockerType?: 'compose' | 'file' | null; // Added
     remote: string;
     lastCommit: {
         message: string;
@@ -77,6 +78,8 @@ export default function GitPage() {
                     alert('Fetch successful');
                 } else if (action === 'force-pull') {
                     alert('Force Pull (Hard Reset) successful');
+                } else if (action === 'docker-rebuild') {
+                    alert('Docker rebuild initiated');
                 }
                 fetchProjects();
             }
@@ -312,6 +315,24 @@ export default function GitPage() {
                                 </div>
 
                                 <div className="flex items-center gap-2">
+                                    {p.dockerType === 'compose' && (
+                                        <button
+                                            className="btn btn-warning"
+                                            onClick={() => {
+                                                if (confirm('Rebuild Docker containers? This will run "docker compose up -d --build".')) {
+                                                    handleAction(p.path, 'docker-rebuild');
+                                                }
+                                            }}
+                                            disabled={!!processing || !!p.error}
+                                            title="Rebuild Docker (Compose)"
+                                        >
+                                            {processing === `${p.path}-docker-rebuild` ? (
+                                                <Loader2 size={16} className="animate-spin" />
+                                            ) : (
+                                                <Box size={16} />
+                                            )}
+                                        </button>
+                                    )}
                                     <button
                                         className="btn btn-primary"
                                         onClick={() => handleAction(p.path, 'pull')}

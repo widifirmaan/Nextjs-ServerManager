@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import simpleGit from 'simple-git';
 import path from 'path';
+import { exec } from 'child_process';
+import util from 'util';
+const execAsync = util.promisify(exec);
 
 export const dynamic = 'force-dynamic';
 
@@ -30,6 +33,7 @@ export async function POST(req: Request) {
             case 'status':
                 result = await git.status();
                 break;
+
             case 'force-pull':
                 await git.fetch();
                 // Get default branch name (usually main or master)
@@ -37,6 +41,20 @@ export async function POST(req: Request) {
                 const branch = status.current;
                 // Reset hard to origin/branch_name
                 result = await git.reset(['--hard', `origin/${branch}`]);
+                break;
+            case 'docker-rebuild':
+                // We assume compose for "Rebuild Docker" usually means restarting the stack
+                // Note: We need to change CWD to project path to run compose
+                try {
+                    // Try to detect compose file first
+                    const { stdout, stderr } = await execAsync('docker compose down && docker compose up -d --build --force-recreate', {
+                        cwd: projectPath
+                    });
+                    result = { stdout, stderr, message: 'Docker rebuild triggered successfully' };
+                } catch (e: any) {
+                    // Fallback or error
+                    throw new Error(`Docker build failed: ${e.message}`);
+                }
                 break;
             default:
                 return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
