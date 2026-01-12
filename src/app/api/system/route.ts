@@ -14,27 +14,23 @@ export async function GET() {
     const uptime = os.uptime();
     const loadAvg = os.loadavg();
 
-    let diskSpace = { total: 0, used: 0, free: 0, percent: 0 };
-
-    try {
-        const { stdout } = await execAsync('df -k /');
-        const lines = stdout.trim().split('\n');
-        if (lines.length > 1) {
-            // Typically: Filesystem 1K-blocks Used Available Use% Mounted on
-            const parts = lines[1].trim().split(/\s+/);
-            // df -k returns KB
-            const total = parseInt(parts[1]) * 1024;
-            const used = parseInt(parts[2]) * 1024;
-            const free = parseInt(parts[3]) * 1024;
-
-            diskSpace = {
-                total, used, free,
-                percent: total > 0 ? Math.round((used / total) * 100) : 0
-            };
-        }
-    } catch (e) {
-        console.error('Disk space check failed', e);
-    }
+    const [
+        diskSpace,
+        publicIp,
+        wifiSSID,
+        powerStatus,
+        temp,
+        watts,
+        weather
+    ] = await Promise.all([
+        getDiskSpace(),
+        getPublicIp(),
+        getWifiSSID(),
+        getPowerStatus(),
+        getCpuTemp(),
+        getWattage(),
+        getWeather()
+    ]);
 
     return NextResponse.json({
         cpus: {
@@ -49,6 +45,113 @@ export async function GET() {
         },
         uptime,
         loadAvg,
-        disk: diskSpace
+        disk: diskSpace,
+        network: {
+            publicIp,
+            ssid: wifiSSID
+        },
+        power: {
+            status: powerStatus, // "Listrik Dirumah Menyala" or "Listrik Dirumah Mati"
+            watts
+        },
+        cpu: {
+            temp
+        },
+        weather
     });
+}
+
+async function getDiskSpace() {
+    try {
+        const { stdout } = await execAsync('df -k /');
+        const lines = stdout.trim().split('\n');
+        if (lines.length > 1) {
+            const parts = lines[1].trim().split(/\s+/);
+            const total = parseInt(parts[1]) * 1024;
+            const used = parseInt(parts[2]) * 1024;
+            const free = parseInt(parts[3]) * 1024;
+            return {
+                total, used, free,
+                percent: total > 0 ? Math.round((used / total) * 100) : 0
+            };
+        }
+    } catch (e) {
+        console.error('Disk space check failed', e);
+    }
+    return { total: 0, used: 0, free: 0, percent: 0 };
+}
+
+async function getPublicIp() {
+    try {
+        const { stdout } = await execAsync('curl -s --connect-timeout 2 ifconfig.me');
+        return stdout.trim();
+    } catch (e) {
+        return 'Unknown';
+    }
+}
+
+async function getWifiSSID() {
+    try {
+        // Try nmcli first
+        const { stdout } = await execAsync("nmcli -t -f active,ssid dev wifi | grep '^yes'");
+        const parts = stdout.split(':');
+        return parts.length > 1 ? parts[1].trim() : 'Unknown';
+    } catch (e) {
+        // Fallback or just return null
+        return null;
+    }
+}
+
+async function getPowerStatus() {
+    try {
+        // Check BAT1 status
+        const { stdout } = await execAsync('cat /sys/class/power_supply/BAT1/status');
+        const status = stdout.trim();
+        if (status === 'Charging' || status === 'Full') return "Listrik Dirumah Menyala";
+        if (status === 'Discharging') return "Listrik Dirumah Mati";
+        return status;
+    } catch (e) {
+        return "Unknown";
+    }
+}
+
+async function getCpuTemp() {
+    try {
+        const { stdout } = await execAsync('cat /sys/class/thermal/thermal_zone0/temp');
+        return parseInt(stdout.trim()) / 1000;
+    } catch (e) {
+        return 0;
+    }
+}
+
+async function getWattage() {
+    try {
+        const { stdout } = await execAsync('cat /sys/class/power_supply/BAT1/power_now');
+        return parseInt(stdout.trim()) / 1000000; // microWatts to Watts
+    } catch (e) {
+        return 0;
+    }
+}
+
+async function getWeather() {
+    try {
+        const geoRes = await fetch('http://ip-api.com/json/', { next: { revalidate: 3600 } });
+        if (!geoRes.ok) return null;
+        const geo = await geoRes.json();
+
+        const weatherRes = await fetch(
+            `https://api.open-meteo.com/v1/forecast?latitude=${geo.lat}&longitude=${geo.lon}&current_weather=true`,
+            { next: { revalidate: 300 } }
+        );
+        const weatherData = await weatherRes.json();
+
+        return {
+            temp: weatherData.current_weather?.temperature,
+            code: weatherData.current_weather?.weathercode,
+            location: geo.city,
+            country: geo.countryCode
+        };
+    } catch (e) {
+        return null;
+    }
 }
