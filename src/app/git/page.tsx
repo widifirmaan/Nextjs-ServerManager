@@ -149,7 +149,7 @@ export default function GitPage() {
         <div>
             <div className="flex items-center justify-between mb-6">
                 <h1 className="text-2xl font-bold neon-text">Git Projects</h1>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-3">
                     <button
                         className="btn btn-primary btn-sm"
                         onClick={() => setIsCloneModalOpen(true)}
@@ -314,7 +314,7 @@ export default function GitPage() {
                                     )}
                                 </div>
 
-                                <div className="flex items-center gap-2">
+                                <div className="flex flex-wrap items-center gap-3 pt-4 md:pt-0">
                                     {p.dockerType === 'compose' && (
                                         <button
                                             className="btn btn-warning"

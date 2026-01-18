@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import {
   Cpu, HardDrive, Clock, Activity,
   Wifi, Zap, Thermometer, Cloud, Globe,
-  Power, Download, List
+  Power, Download, List, Percent
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
@@ -50,26 +50,24 @@ export default function Dashboard() {
   if (!stats) return <div className="p-8 text-center text-muted">Loading system metrics...</div>;
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex justify-between items-center">
+    <div>
+      <div className="flex justify-between items-center flex-wrap gap-4 mb-6">
         <h1 className="text-2xl font-bold neon-text">System Overview</h1>
-        <div className="flex gap-3">
-          <Link href="/processes">
-            <button className="flex items-center gap-2 px-4 py-2 bg-blue-600/20 hover:bg-blue-600/40 text-blue-400 rounded-lg transition border border-blue-600/20">
-              <List size={18} /> Process Monitor
-            </button>
+        <div className="flex gap-4">
+          <Link href="/processes" className="btn btn-info">
+            <List size={18} /> Process Monitor
           </Link>
           <button
             onClick={() => handleAction('upgrade')}
             disabled={!!loadingAction}
-            className="flex items-center gap-2 px-4 py-2 bg-green-600/20 hover:bg-green-600/40 text-green-400 rounded-lg transition border border-green-600/20 disabled:opacity-50"
+            className="btn btn-success"
           >
             <Download size={18} /> {loadingAction === 'upgrade' ? 'Upgrading...' : 'Upgrade Pkg'}
           </button>
           <button
             onClick={() => handleAction('reboot')}
             disabled={!!loadingAction}
-            className="flex items-center gap-2 px-4 py-2 bg-red-600/20 hover:bg-red-600/40 text-red-400 rounded-lg transition border border-red-600/20 disabled:opacity-50"
+            className="btn btn-danger"
           >
             <Power size={18} /> {loadingAction === 'reboot' ? 'Rebooting...' : 'Reboot'}
           </button>
@@ -79,10 +77,11 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Row 1: Core Resources */}
         <StatsCard
-          title="CPU Load"
-          value={stats.loadAvg && stats.loadAvg[0]?.toFixed(2)}
-          sub={`${stats.cpus?.count} Cores`}
-          icon={Cpu}
+          title="CPU Usage"
+          value={`${stats.cpu?.usage || 0}%`}
+          sub={`${stats.cpus?.count} Cores @ ${stats.cpus?.speed} GHz`}
+          icon={Percent}
+          percent={stats.cpu?.usage}
         />
         <StatsCard
           title="Memory"
@@ -122,10 +121,10 @@ export default function Dashboard() {
         />
         <StatsCard
           title="House Power"
-          value={stats.power?.status === "Listrik Dirumah Menyala" ? "On / Charging" : (stats.power?.status === "Listrik Dirumah Mati" ? "OFF / Outage" : stats.power?.status)}
-          sub={stats.power?.status === "Listrik Dirumah Menyala" ? "Power is OK" : "Running on Battery!"}
+          value={stats.power?.status === "Listrik Dirumah Menyala" ? "On / Charging" : (stats.power?.status === "Listrik Dirumah Mati" ? "OFF / Outage" : "On Grid")}
+          sub={stats.power?.status === "Listrik Dirumah Menyala" ? "Power is OK" : (stats.power?.status === "Listrik Dirumah Mati" ? "Running on Battery!" : "Power Stable")}
           icon={Zap}
-          color={stats.power?.status === "Listrik Dirumah Menyala" ? "text-yellow-400" : "text-red-500"}
+          color={stats.power?.status === "Listrik Dirumah Mati" ? "text-red-500" : "text-yellow-400"}
         />
         <div className="grid grid-cols-2 gap-4">
           <MiniCard

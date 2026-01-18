@@ -35,6 +35,7 @@ export async function GET() {
     return NextResponse.json({
         cpus: {
             model: cpus[0]?.model || 'Unknown',
+            speed: cpus[0]?.speed ? (cpus[0].speed / 1000).toFixed(2) : 0,
             count: cpus.length,
         },
         memory: {
@@ -55,7 +56,8 @@ export async function GET() {
             watts
         },
         cpu: {
-            temp
+            temp,
+            usage: await getCpuUsage(cpus.length)
         },
         weather
     });
@@ -112,6 +114,19 @@ async function getPowerStatus() {
         return status;
     } catch (e) {
         return "Unknown";
+    }
+}
+
+async function getCpuUsage(coreCount: number) {
+    try {
+        const { stdout } = await execAsync("ps -A -o %cpu | awk '{s+=$1} END {print s}'");
+        const totalParams = parseFloat(stdout.trim());
+        if (isNaN(totalParams)) return 0;
+        // Total usage divided by cores
+        const usage = totalParams / coreCount;
+        return Math.min(Math.round(usage), 100);
+    } catch (e) {
+        return 0;
     }
 }
 

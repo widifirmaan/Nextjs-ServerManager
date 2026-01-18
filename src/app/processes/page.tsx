@@ -8,6 +8,7 @@ export default function ProcessMonitor() {
     const [processes, setProcesses] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
 
     const fetchProcesses = async () => {
         try {
@@ -28,9 +29,25 @@ export default function ProcessMonitor() {
 
     useEffect(() => {
         fetchProcesses();
-        const interval = setInterval(fetchProcesses, 3000); // 3s refresh
+        const interval = setInterval(fetchProcesses, 3000);
         return () => clearInterval(interval);
     }, []);
+
+    const handleSort = (key: string) => {
+        let direction: 'asc' | 'desc' = 'desc';
+        if (sortConfig && sortConfig.key === key && sortConfig.direction === 'desc') {
+            direction = 'asc';
+        }
+        setSortConfig({ key, direction });
+    };
+
+    const sortedProcesses = [...processes].sort((a, b) => {
+        if (!sortConfig) return 0;
+        const { key, direction } = sortConfig;
+        if (a[key] < b[key]) return direction === 'asc' ? -1 : 1;
+        if (a[key] > b[key]) return direction === 'asc' ? 1 : -1;
+        return 0;
+    });
 
     const killProcess = async (pid: string) => {
         if (!confirm(`Are you sure you want to kill process ${pid}?`)) return;
@@ -55,8 +72,8 @@ export default function ProcessMonitor() {
         <div className="p-6">
             <div className="flex justify-between items-center mb-6">
                 <div className="flex items-center gap-4">
-                    <Link href="/" className="p-2 rounded-full hover:bg-white/10 transition">
-                        <ArrowLeft size={24} />
+                    <Link href="/" className="btn btn-primary rounded-full p-2">
+                        <ArrowLeft size={20} />
                     </Link>
                     <h1 className="text-2xl font-bold neon-text flex items-center gap-2">
                         <Activity className="text-primary" /> Process Monitor
@@ -64,7 +81,7 @@ export default function ProcessMonitor() {
                 </div>
                 <button
                     onClick={fetchProcesses}
-                    className="p-2 rounded hover:bg-white/10 transition"
+                    className="btn btn-secondary"
                 >
                     <RefreshCw size={20} className={loading ? "animate-spin" : ""} />
                 </button>
@@ -72,42 +89,52 @@ export default function ProcessMonitor() {
 
             {error && <div className="text-red-500 mb-4">{error}</div>}
 
-            <div className="overflow-x-auto bg-black/40 rounded-lg border border-white/10 backdrop-blur-sm">
-                <table className="w-full text-left border-collapse">
+            <div className="overflow-x-auto glass-panel">
+                <table className="table">
                     <thead>
-                        <tr className="border-b border-white/10 text-muted bg-white/5">
-                            <th className="p-4">PID</th>
-                            <th className="p-4">Name</th>
-                            <th className="p-4">CPU %</th>
-                            <th className="p-4">MEM %</th>
-                            <th className="p-4 hidden md:table-cell">Args</th>
-                            <th className="p-4 text-right">Action</th>
+                        <tr>
+                            <th>PID</th>
+                            <th>Name</th>
+                            <th>
+                                <button onClick={() => handleSort('cpu')} className="flex items-center gap-1 hover:text-white transition-colors">
+                                    CPU % {sortConfig?.key === 'cpu' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                                </button>
+                            </th>
+                            <th>
+                                <button onClick={() => handleSort('mem')} className="flex items-center gap-1 hover:text-white transition-colors">
+                                    MEM % {sortConfig?.key === 'mem' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                                </button>
+                            </th>
+                            <th className="hidden md:table-cell">Args</th>
+                            <th className="text-right">Action</th>
                         </tr>
                     </thead>
                     <tbody>
                         <AnimatePresence>
-                            {processes.map((proc) => (
+                            {sortedProcesses.map((proc) => (
                                 <motion.tr
                                     key={proc.pid}
                                     initial={{ opacity: 0 }}
                                     animate={{ opacity: 1 }}
                                     exit={{ opacity: 0 }}
-                                    className="border-b border-white/5 hover:bg-white/5 transition-colors"
+                                    className="hover:bg-white/5 transition-colors"
                                 >
-                                    <td className="p-4 font-mono text-sm">{proc.pid}</td>
-                                    <td className="p-4 font-medium text-primary">{proc.name}</td>
-                                    <td className="p-4 font-mono">{proc.cpu}%</td>
-                                    <td className="p-4 font-mono">{proc.mem}%</td>
-                                    <td className="p-4 text-xs text-muted hidden md:table-cell truncate max-w-xs" title={proc.args}>
-                                        {proc.args}
+                                    <td className="font-mono text-sm">{proc.pid}</td>
+                                    <td className="font-medium text-primary">{proc.name}</td>
+                                    <td className="font-mono">{proc.cpu}%</td>
+                                    <td className="font-mono">{proc.mem}%</td>
+                                    <td className="hidden md:table-cell" title={proc.args}>
+                                        <div className="max-w-[300px] truncate text-xs text-muted">
+                                            {proc.args}
+                                        </div>
                                     </td>
-                                    <td className="p-4 text-right">
+                                    <td className="text-right">
                                         <button
                                             onClick={() => killProcess(proc.pid)}
-                                            className="text-red-400 hover:text-red-300 hover:bg-red-400/10 p-2 rounded transition"
+                                            className="btn btn-danger text-xs px-2 py-1"
                                             title="Kill Process"
                                         >
-                                            <Trash2 size={16} />
+                                            <Trash2 size={14} /> Kill
                                         </button>
                                     </td>
                                 </motion.tr>
